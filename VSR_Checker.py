@@ -5,7 +5,8 @@ import re
 
 # Load master SW list (you can replace this with reading a CSV/Excel file)
 def load_master_list():
-    return pd.read_excel("VSR Upload - Golden VSR.xlsx", sheet_name="Master SW List")
+    url = "https://raw.githubusercontent.com/gabrielsteinerstellantis/VSR_Checker/main/data/Master SW List - VSR Checker App.xlsx"
+    return pd.read_excel(url, sheet_name="Master SW List", engine="openpyxl")
 
 # Parse the uploaded VSR HTML file
 def parse_vsr_html(html):
