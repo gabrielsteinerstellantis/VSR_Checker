@@ -54,17 +54,6 @@ def push_to_github(df, token):
     else:
         st.error(f"GitHub update failed: {put.text}")
 
-# Dark mode toggle
-st.sidebar.title("Settings")
-dark_mode = st.sidebar.toggle("Dark Mode")
-
-# Apply light/dark theme override
-if dark_mode:
-    st.markdown("""<style>
-    body { background-color: #0e1117; color: white; }
-    .stDataFrame { background-color: #1c1f26 !important; }
-    </style>""", unsafe_allow_html=True)
-
 # Main UI
 st.title("Vehicle Scan Report Checker")
 uploaded_file = st.file_uploader("Upload VSR HTML file", type="htm")
@@ -91,8 +80,8 @@ def parse_vsr_html(html):
                 ecu = cells[0].get_text(strip=True)
                 part_number = cells[3].get_text(strip=True)
                 sw_version = cells[7].get_text(strip=True)
-                sw_version = re.split(r'(#[0-9]+: [0-9.]+)', sw_version)
-                sw_version = ''.join(sw_version[:2]) if len(sw_version) > 1 else sw_version[0]
+                #sw_version = re.split(r'(#[0-9]+: [0-9.]+)', sw_version)
+                #sw_version = ''.join(sw_version[:2]) if len(sw_version) > 1 else sw_version[0]
 
                 ecu_data.append({
                     "ECU": ecu,
@@ -168,22 +157,65 @@ if uploaded_file:
         st.error(f"Failed to process HTML file: {e}")
 
 # Config: Master List Editor
+# Sidebar config UI
 st.sidebar.markdown("---")
 st.sidebar.subheader("Master SW List Editor")
 
-if "edit_df" not in st.session_state:
-    st.session_state.edit_df = load_master_list()
+# Load and trim the editable version
+raw_df = load_master_list()
+columns_to_keep = ["ECU", "Part #", "SW Version"]
+editable_df = raw_df[columns_to_keep].copy()
 
-editable_df = st.sidebar.data_editor(
-    st.session_state.edit_df,
+# Editable table
+st.session_state.edit_df = st.sidebar.data_editor(
+    editable_df,
     use_container_width=True,
     num_rows="dynamic",
     key="editor"
 )
 
+# GitHub token input
 github_token = st.sidebar.text_input("GitHub Token", type="password")
+
+# Save button
 if st.sidebar.button("💾 Save to GitHub"):
     if github_token:
-        push_to_github(editable_df, github_token)
+        # Update raw_df with edits from editable_df
+        for idx, row in editable_df.iterrows():
+            if idx < len(raw_df):
+                raw_df.at[idx, "ECU"] = row["ECU"]
+                raw_df.at[idx, "Part #"] = row["Part #"]
+                raw_df.at[idx, "SW Version"] = row["SW Version"]
+            else:
+                # Append new rows
+                new_row = pd.Series({**{col: "" for col in raw_df.columns}, **row.to_dict()})
+                raw_df = pd.concat([raw_df, pd.DataFrame([new_row])], ignore_index=True)
+
+        push_to_github(raw_df, github_token)
+        st.cache_data.clear()
+        st.sidebar.success("Saved! Reloading...")
+        st.rerun()
     else:
         st.sidebar.error("Please enter your GitHub token to save changes.")
+
+
+# Manual reload button
+if st.sidebar.button("🔄 Reload Master List"):
+    st.cache_data.clear()
+    st.sidebar.success("Cache cleared. Reloading...")
+    st.rerun()
+
+# Show timestamp
+try:
+    resp = requests.get(
+        f"https://api.github.com/repos/{GITHUB_REPO}/commits?path={MASTER_LIST_PATH}&page=1&per_page=1"
+    )
+    if resp.ok:
+        commit = resp.json()[0]
+        ts = commit["commit"]["committer"]["date"]
+        st.sidebar.caption(f"🕒 Last updated: {ts}")
+except:
+    pass
+
+
+
