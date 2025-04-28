@@ -19,6 +19,13 @@ This application processes vehicle scan report (VSR) HTML files, compares ECU pa
 ## Roadmap
 - Add historical comparison ("diffing") between two VSR scans.
 - Add versioned backups of the Master SW List.
+- Summary:
+  VIN: xxxxxxxxxx
+  Vehicle: (Year: xxxx, Body: xxxx)
+  Total ECUs in VSR: (number found/total number xx%)
+  Part Status: # matching/ total ECUs found
+  SW Status: # matching/total ECUs found
+- Autofit table column width, not to exceed a fixed pixel width
 
 ---
 
