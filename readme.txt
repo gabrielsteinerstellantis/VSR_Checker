@@ -36,6 +36,11 @@ This application processes vehicle scan report (VSR) HTML files, compares ECU pa
       - 1) Update BCM from (sw#) to (sw#). Contact [Name of DRE] if needed
       - 2) Update ......
 
+## Known Bugs
+- Only available locally, as master sw list is stored on P4AVD
+- Need to press "Save Master List" twice to refresh Comparison Results
+
+
 ---
 
 Last updated: April 2025
