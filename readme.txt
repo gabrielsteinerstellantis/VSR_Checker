@@ -29,6 +29,12 @@ This application processes vehicle scan report (VSR) HTML files, compares ECU pa
 - Replace Download CSV with Download Excel summary
 - Add Print option
 - Add share option - email summary list
+- Freeze top row (headers)
+- Add Priority column (Powertrain Modules = 1, ADAS modules = 2, other = 3). Easily sort by priority
+- Action plan summary (provide list of modules to update in order of priority):
+    -ex. 
+      - 1) Update BCM from (sw#) to (sw#). Contact [Name of DRE] if needed
+      - 2) Update ......
 
 ---
 
