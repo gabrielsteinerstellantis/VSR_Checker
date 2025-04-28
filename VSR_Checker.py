@@ -10,12 +10,14 @@ import base64
 
 # GitHub config
 GITHUB_REPO = "gabrielsteinerstellantis/VSR_Checker"
-MASTER_LIST_PATH = "data/Master_SW_List.xlsx"
+#MASTER_LIST_PATH = "data/Master_SW_List.xlsx"
+MASTER_LIST_PATH = r'z:\dp.staging.ah\tmp\VSR_Checker_Data\Master_SW_List.xlsx'
 
 # Load the master list from GitHub
 @st.cache_data
 def load_master_list():
-    url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/{MASTER_LIST_PATH}"
+    #url = f"https://raw.githubusercontent.com/{GITHUB_REPO}/main/{MASTER_LIST_PATH}"
+    url = MASTER_LIST_PATH
     try:
         df = pd.read_excel(url, sheet_name="Master SW List", engine="openpyxl")
         return df
