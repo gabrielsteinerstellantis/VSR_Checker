@@ -93,8 +93,8 @@ def compare_to_master(vsr_df, master_df):
             expected_part = match.iloc[0]["Part #"]
             expected_sw = match.iloc[0]["SW Version"]
 
-            part_status = "✅ Match" if reported_part == expected_part else "⚠️ Mismatch"
-            sw_status = "✅ Match" if expected_sw in reported_sw else "⚠️ Mismatch"
+            part_status = "✅ Match" if str(reported_part) == str(expected_part) else "⚠️ Mismatch"
+            sw_status = "✅ Match" if str(expected_sw) in str(reported_sw) else "⚠️ Mismatch"
         else:
             expected_part = "N/A"
             expected_sw = "N/A"
@@ -103,11 +103,11 @@ def compare_to_master(vsr_df, master_df):
 
         results.append({
             "ECU": ecu,
-            "Reported Part #": reported_part,
-            "Expected Part #": expected_part,
+            "🚗Reported Part #": reported_part,
+            "📒Expected Part #": expected_part,
             "Part Status": part_status,
-            "Reported SW": reported_sw,
-            "Expected SW": expected_sw,
+            "🚗Reported SW": reported_sw,
+            "📒Expected SW": expected_sw,
             "SW Status": sw_status
         })
     return pd.DataFrame(results)
