@@ -26,6 +26,9 @@ This application processes vehicle scan report (VSR) HTML files, compares ECU pa
   Part Status: # matching/ total ECUs found
   SW Status: # matching/total ECUs found
 - Autofit table column width, not to exceed a fixed pixel width
+- Replace Download CSV with Download Excel summary
+- Add Print option
+- Add share option - email summary list
 
 ---
 
