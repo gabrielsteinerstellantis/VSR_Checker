@@ -1,0 +1,25 @@
+# VSR Checker App
+
+## Overview
+This application processes vehicle scan report (VSR) HTML files, compares ECU part numbers and software versions against a Master Software List, and provides an easy-to-use visual report.
+
+## How It Works
+- Upload a VSR HTML file.
+- The app parses ECU information and compares it to the Master SW List.
+- Color-coded results show matches, mismatches, and missing ECUs.
+
+## Key Features
+- Upload VSR and auto-compare to latest master list.
+- View, edit, and save the Master SW List directly through the app.
+- Filter results by match/mismatch status.
+- Hide unwanted ECUs dynamically.
+- Download filtered results as CSV.
+- View app ReadMe inside the GUI.
+
+## Roadmap
+- Add historical comparison ("diffing") between two VSR scans.
+- Add versioned backups of the Master SW List.
+
+---
+
+Last updated: April 2025
