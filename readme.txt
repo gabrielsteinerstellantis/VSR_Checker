@@ -17,8 +17,8 @@ This application processes vehicle scan report (VSR) HTML files, compares ECU pa
 - View app ReadMe inside the GUI.
 
 ## Roadmap
-- Add logic to identify if Hardware of SW is NEWER than expected (if number is bigger)
-- Filters to show only high priority / powertrain ECUs, or ADAS ECUs, or Other
+- [x] Add logic to identify if Hardware of SW is NEWER than expected (if number is bigger)
+- [x] Filters to show only high priority / powertrain ECUs, or ADAS ECUs, or Other
 - Add historical comparison ("diffing") between two VSR scans.
 - Add versioned backups of the Master SW List.
 - Summary:
@@ -27,7 +27,7 @@ This application processes vehicle scan report (VSR) HTML files, compares ECU pa
   Total ECUs in VSR: (number found/total number xx%)
   Part Status: # matching/ total ECUs found
   SW Status: # matching/total ECUs found
-- Autofit table column width, not to exceed a fixed pixel width
+- [x] Autofit table column width, not to exceed a fixed pixel width
 - Replace Download CSV with Download Excel summary
 - Add Print option
 - Add share option - email summary list
