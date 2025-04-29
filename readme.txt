@@ -17,6 +17,8 @@ This application processes vehicle scan report (VSR) HTML files, compares ECU pa
 - View app ReadMe inside the GUI.
 
 ## Roadmap
+- Add logic to identify if Hardware of SW is NEWER than expected (if number is bigger)
+- Filters to show only high priority / powertrain ECUs, or ADAS ECUs, or Other
 - Add historical comparison ("diffing") between two VSR scans.
 - Add versioned backups of the Master SW List.
 - Summary:
