@@ -21,6 +21,7 @@ This application processes vehicle scan report (VSR) HTML files, compares ECU pa
 - [x] Filters to show only high priority / powertrain ECUs, or ADAS ECUs, or Other
 - Add historical comparison ("diffing") between two VSR scans.
 - Add versioned backups of the Master SW List.
+- Save backups of every VSR uploaded in a repository (ignore duplicates)
 - Summary:
   VIN: xxxxxxxxxx
   Vehicle: (Year: xxxx, Body: xxxx)
