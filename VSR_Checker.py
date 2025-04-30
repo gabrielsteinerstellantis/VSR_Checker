@@ -5,6 +5,7 @@ import re
 import requests
 from io import BytesIO
 from packaging import version
+import pdfkit
 
 # === CONFIGURATION ===
 MASTER_LIST_PATH = r'z:\dp.staging.ah\tmp\VSR_Checker_Data\Master_SW_List.xlsx'
@@ -170,16 +171,52 @@ def compare_to_master(vsr_df, master_df):
     return pd.DataFrame(results)
 
 
-def highlight_status(val):
-    if "✅" in val:
-        return 'background-color: #d4edda; color: #155724'  # Light green, dark green
-    elif "⚠️" in val:
-        return 'background-color: #fff3cd; color: #856404'  # Light yellow, dark yellow
-    elif "❌" in val:
-        return 'background-color: #f8d7da; color: #721c24'  # Light red, dark red
-    elif "💜" in val:  # Add this condition for "Newer"
-        return 'background-color: #e0b0ff; color: #4b0082'  # Light purple, dark purple
-    return ''
+def highlight_status(row):
+    styles = [('') for _ in row.index]  # Default: no style
+
+    if row["Part Status"] == "⚠️ Older":
+        part_color = 'background-color: #fff3cd; color: #856404'
+        styles[row.index.get_loc("🚗Reported Part #")] = part_color
+        styles[row.index.get_loc("📒Expected Part #")] = part_color
+        styles[row.index.get_loc("Part Status")] = part_color
+    elif row["Part Status"] == "❌ Not Found":
+        part_color = 'background-color: #f8d7da; color: #721c24'
+        styles[row.index.get_loc("🚗Reported Part #")] = part_color
+        styles[row.index.get_loc("📒Expected Part #")] = part_color
+        styles[row.index.get_loc("Part Status")] = part_color
+    elif row["Part Status"] == "💜 Newer":
+        part_color = 'background-color: #e0b0ff; color: #4b0082'
+        styles[row.index.get_loc("🚗Reported Part #")] = part_color
+        styles[row.index.get_loc("📒Expected Part #")] = part_color
+        styles[row.index.get_loc("Part Status")] = part_color
+    elif row["Part Status"] == "✅ Match":
+        part_color = 'background-color: #d4edda; color: #155724'
+        styles[row.index.get_loc("🚗Reported Part #")] = part_color
+        styles[row.index.get_loc("📒Expected Part #")] = part_color
+        styles[row.index.get_loc("Part Status")] = part_color
+
+    if row["SW Status"] == "⚠️ Older":
+        sw_color = 'background-color: #fff3cd; color: #856404'
+        styles[row.index.get_loc("🚗Reported SW")] = sw_color
+        styles[row.index.get_loc("📒Expected SW")] = sw_color
+        styles[row.index.get_loc("SW Status")] = sw_color
+    elif row["SW Status"] == "❌ Not Found":
+        sw_color = 'background-color: #f8d7da; color: #721c24'
+        styles[row.index.get_loc("🚗Reported SW")] = sw_color
+        styles[row.index.get_loc("📒Expected SW")] = sw_color
+        styles[row.index.get_loc("SW Status")] = sw_color
+    elif row["SW Status"] == "💜 Newer":
+        sw_color = 'background-color: #e0b0ff; color: #4b0082'
+        styles[row.index.get_loc("🚗Reported SW")] = sw_color
+        styles[row.index.get_loc("📒Expected SW")] = sw_color
+        styles[row.index.get_loc("SW Status")] = sw_color
+    elif row["SW Status"] == "✅ Match":
+        sw_color = 'background-color: #d4edda; color: #155724'
+        styles[row.index.get_loc("🚗Reported SW")] = sw_color
+        styles[row.index.get_loc("📒Expected SW")] = sw_color
+        styles[row.index.get_loc("SW Status")] = sw_color
+
+    return styles
 
 
 def generate_action_plan(results_df):
@@ -227,6 +264,49 @@ def generate_action_plan(results_df):
 
     return action_plan
 
+def generate_action_plan_html(action_plan):
+    html = """
+    <html>
+    <head>
+        <style>
+            body {font-family: sans-serif;}
+            h2 {color: #333;}
+            h3 {color: #555; margin-top: 1em;}
+            table {width: 100%; border-collapse: collapse;}
+            th, td {border: 1px solid #ddd; padding: 8px; text-align: left;}
+            th {background-color: #f2f2f2;}
+            .priority-1 {background-color: #f8d7da;} /* Light red */
+            .priority-2 {background-color: #fff3cd;} /* Light yellow */
+            .priority-3 {background-color: #d4edda;} /* Light green */
+            .missing {color: red; font-weight: bold;}
+        </style>
+    </head>
+    <body>
+        <h2>Action Plan</h2>
+    """
+
+    if not action_plan["priority_1"].empty:
+        html += "<h3>Priority 1: Update Critical Base Vehicle ECUs</h3>"
+        html += action_plan["priority_1"].to_html(index=False)
+
+    if not action_plan["priority_2"].empty:
+        html += "<h3>Priority 2: Update ADAS ECUs</h3>"
+        html += action_plan["priority_2"].to_html(index=False)
+
+    if not action_plan["priority_3"].empty:
+        html += "<h3>Priority 3: Update Low Priority Base Vehicle ECUs</h3>"
+        html += action_plan["priority_3"].to_html(index=False)
+
+    if action_plan["missing"]:
+        html += "<h3>Missing ECUs</h3>"
+        html += "<p class='missing'>The following ECUs were not found in the Master SW List: " + ", ".join(action_plan['missing']) + ".</p>"
+
+    if action_plan["other_no_update"]:
+        html += "<h3>Other ECUs</h3>"
+        html += "<p>The following ECUs do not require updates: " + ", ".join(action_plan['other_no_update']) + ".</p>"
+
+    html += "</body></html>"
+    return html
 
 # === PAGE SETUP ===
 st.set_page_config(page_title="Vehicle Scan Report Checker", layout="wide")
@@ -235,6 +315,9 @@ st.title("🚗 Vehicle Scan Report Checker")
 # === SESSION STATE SETUP ===
 if "hidden_ecus" not in st.session_state:
     st.session_state.hidden_ecus = set()
+
+# === LOAD MASTER LIST ON STARTUP ===
+master_df = load_master_list()
 
 # === UPLOAD VSR FILE ===
 uploaded_file = st.file_uploader("Upload VSR HTML file", type="htm")
@@ -246,8 +329,8 @@ if uploaded_file:
 
     if vsr_df.empty:
         st.error("No ECU data found in the HTML file.")
+        results_df = pd.DataFrame() # Initialize an empty results_df
     else:
-        master_df = load_master_list()
         results_df = compare_to_master(vsr_df, master_df)
 
         # Count Part Statuses
@@ -300,30 +383,6 @@ if uploaded_file:
                 st.caption("No priorities (0-3) found in results for filtering.")
                 priority_selected = [] # Ensure it's defined even if no checkboxes shown
 
-
-        # === ECU HIDING SYSTEM ===
-        with st.sidebar.expander("👁️‍🗨️ Hide / Show ECUs", expanded=False):
-            st.markdown("**Toggle ECUs you want to display:**")
-            all_ecus = sorted(results_df["ECU"].unique())
-
-            # Master toggle to show all if everything hidden
-            if st.button("🔄 Show All ECUs"):
-                st.session_state.hidden_ecus.clear()
-                st.rerun() # Added rerun for immediate effect
-
-            for ecu in all_ecus:
-                # Determine current state based on session state
-                is_visible = ecu not in st.session_state.hidden_ecus
-
-                # Create checkbox, default value reflects current visibility
-                if st.checkbox(ecu, value=is_visible, key=f"ecu_checkbox_{ecu}"):
-                    # If checkbox is checked, ensure ECU is NOT in the hidden set
-                    st.session_state.hidden_ecus.discard(ecu)
-                else:
-                    # If checkbox is unchecked, ensure ECU IS in the hidden set
-                    st.session_state.hidden_ecus.add(ecu)
-
-
         # === APPLY FILTERS ===
         filtered_df = results_df.copy()
 
@@ -355,7 +414,7 @@ if uploaded_file:
 
         # === DISPLAY RESULTS ===
         st.subheader("📋 Comparison Results")
-        styled_df = filtered_df.style.applymap(highlight_status, subset=["Part Status", "SW Status"])
+        styled_df = filtered_df.style.apply(highlight_status, axis=1)
 
         # Dynamically calculate height based on the number of rows
         max_rows = 50
@@ -368,38 +427,113 @@ if uploaded_file:
         # Display the table with dynamic height
         st.dataframe(styled_df, use_container_width=True, height=container_height)
 
-        # === DOWNLOAD CSV ===
-        csv = filtered_df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            "⬇️ Download CSV",
-            data=csv,
-            file_name="vsr_comparison.csv",
-            mime="text/csv"
-        )
+        def export_df_to_excel_with_color(df):
+            def color_cells(row):
+                styles = []
+                for col in df.columns:
+                    if col == "Part Status":
+                        if "✅" in row[col]:
+                            styles.append('background-color: #d4edda')
+                        elif "⚠️" in row[col]:
+                            styles.append('background-color: #fff3cd')
+                        elif "❌" in row[col]:
+                            styles.append('background-color: #f8d7da')
+                        elif "💜" in row[col]:
+                            styles.append('background-color: #e0b0ff')
+                        else:
+                            styles.append('')
+                    elif col == "SW Status":
+                        if "✅" in row[col]:
+                            styles.append('background-color: #d4edda')
+                        elif "⚠️" in row[col]:
+                            styles.append('background-color: #fff3cd')
+                        elif "❌" in row[col]:
+                            styles.append('background-color: #f8d7da')
+                        elif "💜" in row[col]:
+                            styles.append('background-color: #e0b0ff')
+                        else:
+                            styles.append('')
+                    elif col in ["🚗Reported Part #", "📒Expected Part #"]:
+                        status_col_index = df.columns.get_loc("Part Status")
+                        status = row[status_col_index]
+                        if "⚠️" in status:
+                            styles.append('background-color: #fff3cd')
+                        elif "❌" in status:
+                            styles.append('background-color: #f8d7da')
+                        elif "💜" in status:
+                            styles.append('background-color: #e0b0ff')
+                        else:
+                            styles.append('')
+                    elif col in ["🚗Reported SW", "📒Expected SW"]:
+                        status_col_index = df.columns.get_loc("SW Status")
+                        status = row[status_col_index]
+                        if "⚠️" in status:
+                            styles.append('background-color: #fff3cd')
+                        elif "❌" in status:
+                            styles.append('background-color: #f8d7da')
+                        elif "💜" in status:
+                            styles.append('background-color: #e0b0ff')
+                        else:
+                            styles.append('')
+                    else:
+                        styles.append('')
+                return styles
 
-# === GENERATE AND DISPLAY ACTION PLAN ===
+            styled_df = df.style.apply(color_cells, axis=1)
+
+            towrite = BytesIO()
+            styled_df.to_excel(towrite, index=False, engine='xlsxwriter')
+            towrite.seek(0)
+            st.download_button(
+                label="💾 Export to Excel",
+                data=towrite,
+                file_name="vsr_comparison.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+        # === EXPORT OPTIONS ===
+        export_df_to_excel_with_color(filtered_df)
+
+        # === GENERATE ACTION PLAN ===
         action_plan = generate_action_plan(filtered_df)
-        st.subheader("💡 Action Plan")
 
-        if not action_plan["priority_1"].empty:
-            st.subheader("Priority 1: Critical Base Vehicle ECUs")
-            st.dataframe(action_plan["priority_1"], use_container_width=True)
+        # === DISPLAY ACTION PLAN ===
+        with st.expander("💡 Action Plan", expanded=True):
+            if not action_plan["priority_1"].empty:
+                st.subheader("Priority 1: Update Critical Base Vehicle ECUs")
+                st.dataframe(action_plan["priority_1"], use_container_width=True)
 
-        if not action_plan["priority_2"].empty:
-            st.subheader("Priority 2: ADAS ECUs")
-            st.dataframe(action_plan["priority_2"], use_container_width=True)
+            if not action_plan["priority_2"].empty:
+                st.subheader("Priority 2: Update ADAS ECUs")
+                st.dataframe(action_plan["priority_2"], use_container_width=True)
 
-        if not action_plan["priority_3"].empty:
-            st.subheader("Priority 3: Low Priority Base Vehicle ECUs")
-            st.dataframe(action_plan["priority_3"], use_container_width=True)
+            if not action_plan["priority_3"].empty:
+                st.subheader("Priority 3: Update Low Priority Base Vehicle ECUs")
+                st.dataframe(action_plan["priority_3"], use_container_width=True)
 
-        if action_plan["missing"]:
-            st.subheader("Missing ECUs")
-            st.markdown(f"The following ECUs were not found in the Master SW List: {', '.join(action_plan['missing'])}.")
+            if action_plan["missing"]:
+                st.subheader("Missing ECUs")
+                st.markdown(f"The following ECUs were not found in the Master SW List: {', '.join(action_plan['missing'])}.")
 
-        if action_plan["other_no_update"]:
-            st.subheader("Other ECUs")
-            st.markdown(f"The following ECUs do not require updates: {', '.join(action_plan['other_no_update'])}.")
+            if action_plan["other_no_update"]:
+                st.subheader("Other ECUs")
+                st.markdown(f"The following ECUs do not require updates: {', '.join(action_plan['other_no_update'])}.")
+
+        # === PDF EXPORT ===
+        with st.expander("⎙ Export Action Plan to PDF", expanded=False):
+            action_plan_html = generate_action_plan_html(action_plan)
+            pdf_buffer = BytesIO()
+            try:
+                pdfkit.from_string(action_plan_html, pdf_buffer)
+                pdf_buffer.seek(0)
+                st.download_button(
+                    label="⬇️ Download Action Plan as PDF",
+                    data=pdf_buffer,
+                    file_name="action_plan.pdf",
+                    mime="application/pdf"
+                )
+            except Exception as e:
+                st.error(f"Error generating PDF: {e}. Make sure wkhtmltopdf is installed and in your PATH.")
 
 # === SIDEBAR TOOLS ===
 st.sidebar.markdown("---")
@@ -426,18 +560,15 @@ edited_df = st.sidebar.data_editor(
     key="editor"
 )
 
-if st.sidebar.button("💾 Save Master List"):
-    try:
-        # Create a DataFrame reflecting the edits, including additions/deletions
-        # The data editor passes the *current state* of the table.
-        # We need to merge this back carefully if other columns existed in raw_df.
-        # Assuming columns_to_keep are the *only* ones we care about saving.
-        save_master_list(edited_df) # Save the edited state directly
-        st.cache_data.clear() # Clear cache after saving
-        st.rerun() # Rerun script to reflect saved changes
-    except Exception as e:
-        st.error(f"Error saving edits: {e}")
-
+# === CONDITIONALLY DISPLAY SAVE BUTTON ===
+if 'results_df' in locals() and not results_df.empty:
+    if st.sidebar.button("💾 Save Master List"):
+        try:
+            save_master_list(edited_df) # Save the edited state directly
+            st.cache_data.clear() # Clear cache after saving
+            st.rerun() # Rerun script to reflect saved changes
+        except Exception as e:
+            st.error(f"Error saving edits: {e}")
 
 # === SIDEBAR README ===
 st.sidebar.markdown("---")
